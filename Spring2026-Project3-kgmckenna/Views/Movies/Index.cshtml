@@ -46,7 +46,16 @@
                 @Html.DisplayFor(modelItem => item.Year)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Poster)
+                @if (item.Poster != null)
+                {
+                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(item.Poster)"
+                            alt="Poster"
+                            style="max-width:100px; max-height:150px;" />
+                }
+                else
+                {
+                    <span>No poster</span>
+                }
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |

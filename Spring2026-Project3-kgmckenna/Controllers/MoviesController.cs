@@ -54,14 +54,22 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,ImdbLink,Genre,Year,Poster")] Movie movie)
+        public async Task<IActionResult> Create(Movie movie, IFormFile? posterFile)
         {
+            if (posterFile != null && posterFile.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await posterFile.CopyToAsync(memoryStream);
+                movie.Poster = memoryStream.ToArray();
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(movie);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             return View(movie);
         }
 
@@ -86,11 +94,29 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ImdbLink,Genre,Year,Poster")] Movie movie)
+        public async Task<IActionResult> Edit(int id, Movie movie, IFormFile? posterFile)
         {
             if (id != movie.Id)
             {
                 return NotFound();
+            }
+
+            if (posterFile != null && posterFile.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await posterFile.CopyToAsync(memoryStream);
+                movie.Poster = memoryStream.ToArray();
+            }
+            else
+            {
+                var existingMovie = await _context.Movies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                if (existingMovie != null)
+                {
+                    movie.Poster = existingMovie.Poster;
+                }
             }
 
             if (ModelState.IsValid)
@@ -111,8 +137,10 @@ namespace Spring2026_Project3_kgmckenna.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
             return View(movie);
         }
 
