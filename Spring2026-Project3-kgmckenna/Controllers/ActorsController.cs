@@ -54,14 +54,22 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Gender,Age,ImdbLink,Photo")] Actor actor)
+        public async Task<IActionResult> Create(Actor actor, IFormFile? photoFile)
         {
+            if (photoFile != null && photoFile.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await photoFile.CopyToAsync(memoryStream);
+                actor.Photo = memoryStream.ToArray();
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(actor);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             return View(actor);
         }
 
@@ -86,11 +94,29 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Gender,Age,ImdbLink,Photo")] Actor actor)
+        public async Task<IActionResult> Edit(int id, Actor actor, IFormFile? photoFile)
         {
             if (id != actor.Id)
             {
                 return NotFound();
+            }
+
+            if (photoFile != null && photoFile.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await photoFile.CopyToAsync(memoryStream);
+                actor.Photo = memoryStream.ToArray();
+            }
+            else
+            {
+                var existingActor = await _context.Actors
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                if (existingActor != null)
+                {
+                    actor.Photo = existingActor.Photo;
+                }
             }
 
             if (ModelState.IsValid)
@@ -111,8 +137,10 @@ namespace Spring2026_Project3_kgmckenna.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
             return View(actor);
         }
 
