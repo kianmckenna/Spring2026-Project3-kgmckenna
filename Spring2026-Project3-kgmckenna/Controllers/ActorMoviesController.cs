@@ -61,6 +61,14 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,ActorId,MovieId")] ActorMovie actorMovie)
         {
+            bool exists = await _context.ActorMovies.AnyAsync(am =>
+                am.ActorId == actorMovie.ActorId &&
+                am.MovieId == actorMovie.MovieId);
+
+            if (exists)
+            {
+                ModelState.AddModelError("", "That actor is already linked to that movie.");
+            }
             if (ModelState.IsValid)
             {
                 _context.Add(actorMovie);
