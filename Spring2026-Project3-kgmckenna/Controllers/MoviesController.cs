@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Spring2026_Project3_kgmckenna.Data;
 using Spring2026_Project3_kgmckenna.Models;
+using Spring2026_Project3_kgmckenna.ViewModels;
+using VaderSharp2;
 
 namespace Spring2026_Project3_kgmckenna.Controllers
 {
@@ -34,13 +36,71 @@ namespace Spring2026_Project3_kgmckenna.Controllers
             }
 
             var movie = await _context.Movies
+                .Include(m => m.ActorMovies)
+                    .ThenInclude(am => am.Actor)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (movie == null)
             {
                 return NotFound();
             }
 
-            return View(movie);
+            var actorNames = movie.ActorMovies
+                .Where(am => am.Actor != null)
+                .Select(am => am.Actor!.Name)
+                .ToList();
+
+            var fakeReviews = new List<string>
+    {
+        "This movie was exciting and visually impressive.",
+        "The performances were strong and the story was enjoyable.",
+        "It had some slow parts, but overall it was entertaining.",
+        "The action scenes were excellent and memorable.",
+        "A fun movie with a lot of charm."
+    };
+
+            var analyzer = new SentimentIntensityAnalyzer();
+
+            var reviewsWithSentiment = fakeReviews.Select(review =>
+            {
+                var score = analyzer.PolarityScores(review).Compound;
+
+                string sentiment;
+                if (score >= 0.05)
+                    sentiment = "Positive";
+                else if (score <= -0.05)
+                    sentiment = "Negative";
+                else
+                    sentiment = "Neutral";
+
+                return new ReviewSentimentViewModel
+                {
+                    Review = review,
+                    Sentiment = sentiment
+                };
+            }).ToList();
+
+            double average = fakeReviews
+                .Select(r => analyzer.PolarityScores(r).Compound)
+                .Average();
+
+            string overallSentiment;
+            if (average >= 0.05)
+                overallSentiment = "Positive";
+            else if (average <= -0.05)
+                overallSentiment = "Negative";
+            else
+                overallSentiment = "Neutral";
+
+            var vm = new MovieDetailsViewModel
+            {
+                Movie = movie,
+                ActorNames = actorNames,
+                ReviewsWithSentiment = reviewsWithSentiment,
+                OverallSentiment = overallSentiment
+            };
+
+            return View(vm);
         }
 
         // GET: Movies/Create
