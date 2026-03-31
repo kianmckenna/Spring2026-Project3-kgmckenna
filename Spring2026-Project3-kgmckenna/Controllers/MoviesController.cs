@@ -9,6 +9,10 @@ using Spring2026_Project3_kgmckenna.Data;
 using Spring2026_Project3_kgmckenna.Models;
 using Spring2026_Project3_kgmckenna.ViewModels;
 using VaderSharp2;
+using Azure;
+using Azure.AI.OpenAI;
+using OpenAI.Chat;
+using OpenAI;
 
 namespace Spring2026_Project3_kgmckenna.Controllers
 {
@@ -16,9 +20,10 @@ namespace Spring2026_Project3_kgmckenna.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public MoviesController(ApplicationDbContext context)
+        public MoviesController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET: Movies
@@ -50,18 +55,11 @@ namespace Spring2026_Project3_kgmckenna.Controllers
                 .Select(am => am.Actor!.Name)
                 .ToList();
 
-            var fakeReviews = new List<string>
-    {
-        "This movie was exciting and visually impressive.",
-        "The performances were strong and the story was enjoyable.",
-        "It had some slow parts, but overall it was entertaining.",
-        "The action scenes were excellent and memorable.",
-        "A fun movie with a lot of charm."
-    };
+            var reviews = await GenerateMovieReviewsAsync(movie);
 
             var analyzer = new SentimentIntensityAnalyzer();
 
-            var reviewsWithSentiment = fakeReviews.Select(review =>
+            var reviewsWithSentiment = reviews.Select(review =>
             {
                 var score = analyzer.PolarityScores(review).Compound;
 
@@ -80,7 +78,7 @@ namespace Spring2026_Project3_kgmckenna.Controllers
                 };
             }).ToList();
 
-            double average = fakeReviews
+            double average = reviews
                 .Select(r => analyzer.PolarityScores(r).Compound)
                 .Average();
 
@@ -241,5 +239,75 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         {
             return _context.Movies.Any(e => e.Id == id);
         }
+        private readonly IConfiguration _configuration;
+        private async Task<List<string>> GenerateMovieReviewsAsync(Movie movie)
+        {
+            var endpoint = _configuration["AzureOpenAI:Endpoint"];
+            var apiKey = _configuration["AzureOpenAI:Key"];
+            var deploymentName = _configuration["AzureOpenAI:DeploymentName"];
+
+            if (string.IsNullOrWhiteSpace(endpoint) ||
+                string.IsNullOrWhiteSpace(apiKey) ||
+                string.IsNullOrWhiteSpace(deploymentName))
+            {
+                return new List<string>
+        {
+            "AI configuration is missing.",
+            "AI configuration is missing.",
+            "AI configuration is missing.",
+            "AI configuration is missing.",
+            "AI configuration is missing."
+        };
+            }
+
+            var client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+            var chatClient = client.GetChatClient(deploymentName);
+
+            var prompt = $"""
+        Generate exactly 5 short reviews for the movie "{movie.Title}".
+        Genre: {movie.Genre}
+        Year: {movie.Year}
+
+        Requirements:
+        - Make each review 1 to 2 sentences
+        - Put each review on its own line
+        - Number them 1 through 5
+        - Do not include any extra intro or conclusion text
+        """;
+
+            var response = await chatClient.CompleteChatAsync(
+                new List<ChatMessage>
+                {
+            new SystemChatMessage("You write short movie reviews."),
+            new UserChatMessage(prompt)
+                });
+
+            var content = response.Value.Content[0].Text;
+
+            var lines = content
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            var cleaned = lines
+                .Select(line =>
+                {
+                    if (line.Length > 2 && char.IsDigit(line[0]) && line[1] == '.')
+                        return line.Substring(2).Trim();
+                    if (line.Length > 1 && char.IsDigit(line[0]) && line[1] == ')')
+                        return line.Substring(2).Trim();
+                    return line;
+                })
+                .ToList();
+
+            while (cleaned.Count < 5)
+            {
+                cleaned.Add("Review unavailable.");
+            }
+
+            return cleaned.Take(5).ToList();
+        }
     }
+    
 }
