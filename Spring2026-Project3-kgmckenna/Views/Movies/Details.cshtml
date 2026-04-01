@@ -92,3 +92,91 @@ else
     <a asp-action="Edit" asp-route-id="@Model?Movie.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>
+<div class="container">
+    <div class="row mb-5">
+        <div class="col-md-4 text-center">
+            @if (Model.Movie.Poster != null)
+            {
+                <img src="data:image/*;base64,@Convert.ToBase64String(Model.Movie.Poster)"
+                     class="detail-image"
+                     alt="Movie Poster" />
+            }
+            else
+            {
+                <div class="image-placeholder">No Poster</div>
+            }
+        </div>
+
+        <div class="col-md-8">
+            <div class="detail-card">
+                <h1>@Model.Movie.Title</h1>
+                <hr />
+
+                <p><strong>Genre:</strong> @Model.Movie.Genre</p>
+                <p><strong>Year:</strong> @Model.Movie.Year</p>
+
+                <p>
+                    <strong>IMDb:</strong>
+                    <a href="@Model.Movie.ImdbLink" target="_blank">View on IMDb</a>
+                </p>
+
+                <h4 class="mt-4">Actors</h4>
+
+                @if (Model.ActorNames.Any())
+                {
+                    <ul>
+                        @foreach (var actor in Model.ActorNames)
+                        {
+                            <li>@actor</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>No actors linked yet.</p>
+                }
+
+                <div class="mt-4">
+                    <a asp-action="Edit" asp-route-id="@Model.Movie.Id" class="btn btn-primary me-2">Edit</a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-card mb-4">
+        <h2>AI Reviews</h2>
+        <h5 class="text-muted">Overall Sentiment: @Model.OverallSentiment</h5>
+
+        <table class="table table-striped mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>Review</th>
+                    <th style="width: 150px;">Sentiment</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ReviewsWithSentiment)
+                {
+                    <tr>
+                        <td>@item.Review</td>
+                        <td>
+                            @if (item.Sentiment == "Positive")
+                            {
+                                <span class="badge bg-success">Positive</span>
+                            }
+                            else if (item.Sentiment == "Negative")
+                            {
+                                <span class="badge bg-danger">Negative</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Neutral</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
