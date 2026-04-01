@@ -1,8 +1,47 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Movie & Actor Hub</h1>
+        <p class="lead">
+            Explore movies, actors, reviews, sentiment analysis, and connections between your favorite stars and films.
+        </p>
+
+        <div class="hero-buttons mt-4">
+            <a class="btn btn-primary btn-lg me-2" asp-controller="Movies" asp-action="Index">Browse Movies</a>
+            <a class="btn btn-outline-light btn-lg me-2" asp-controller="Actors" asp-action="Index">Browse Actors</a>
+            <a class="btn btn-secondary btn-lg" asp-controller="ActorMovies" asp-action="Index">View Actor-Movie Links</a>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-card h-100">
+                <h3>Movies</h3>
+                <p>
+                    View movie details, posters, genres, release years, and AI-generated review sections.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card h-100">
+                <h3>Actors</h3>
+                <p>
+                    Explore actor profiles, photos, linked movies, and sentiment analysis for generated comments.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card h-100">
+                <h3>Connections</h3>
+                <p>
+                    Keep track of which actors appear in which movies with your actor-movie relationship system.
+                </p>
+            </div>
+        </div>
+    </div>
 </div>
