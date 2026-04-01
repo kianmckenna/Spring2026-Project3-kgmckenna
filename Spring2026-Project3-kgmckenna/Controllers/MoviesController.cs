@@ -12,7 +12,6 @@ using VaderSharp2;
 using Azure;
 using Azure.AI.OpenAI;
 using OpenAI.Chat;
-using OpenAI;
 
 namespace Spring2026_Project3_kgmckenna.Controllers
 {
@@ -260,54 +259,70 @@ namespace Spring2026_Project3_kgmckenna.Controllers
         };
             }
 
-            var client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
-            var chatClient = client.GetChatClient(deploymentName);
-
-            var prompt = $"""
-        Generate exactly 5 short reviews for the movie "{movie.Title}".
-        Genre: {movie.Genre}
-        Year: {movie.Year}
-
-        Requirements:
-        - Make each review 1 to 2 sentences
-        - Put each review on its own line
-        - Number them 1 through 5
-        - Do not include any extra intro or conclusion text
-        """;
-
-            var response = await chatClient.CompleteChatAsync(
-                new List<ChatMessage>
-                {
-            new SystemChatMessage("You write short movie reviews."),
-            new UserChatMessage(prompt)
-                });
-
-            var content = response.Value.Content[0].Text;
-
-            var lines = content
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim())
-                .Where(line => !string.IsNullOrWhiteSpace(line))
-                .ToList();
-
-            var cleaned = lines
-                .Select(line =>
-                {
-                    if (line.Length > 2 && char.IsDigit(line[0]) && line[1] == '.')
-                        return line.Substring(2).Trim();
-                    if (line.Length > 1 && char.IsDigit(line[0]) && line[1] == ')')
-                        return line.Substring(2).Trim();
-                    return line;
-                })
-                .ToList();
-
-            while (cleaned.Count < 5)
+            try
             {
-                cleaned.Add("Review unavailable.");
-            }
+                var client = new AzureOpenAIClient(
+                    new Uri(endpoint),
+                    new AzureKeyCredential(apiKey));
 
-            return cleaned.Take(5).ToList();
+                var chatClient = client.GetChatClient(deploymentName);
+
+                var prompt = $"""
+            Generate exactly 5 short reviews for the movie "{movie.Title}".
+            Genre: {movie.Genre}
+            Year: {movie.Year}
+
+            Requirements:
+            - Make each review 1 to 2 sentences
+            - Put each review on its own line
+            - Number them 1 through 5
+            - Do not include any intro or conclusion
+            """;
+
+                var response = await chatClient.CompleteChatAsync(
+                    new List<ChatMessage>
+                    {
+                new SystemChatMessage("You write short movie reviews."),
+                new UserChatMessage(prompt)
+                    });
+
+                var content = response.Value.Content[0].Text;
+
+                var lines = content
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(line => line.Trim())
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .ToList();
+
+                var cleaned = lines
+                    .Select(line =>
+                    {
+                        if (line.Length > 2 && char.IsDigit(line[0]) && line[1] == '.')
+                            return line.Substring(2).Trim();
+                        if (line.Length > 1 && char.IsDigit(line[0]) && line[1] == ')')
+                            return line.Substring(2).Trim();
+                        return line;
+                    })
+                    .ToList();
+
+                while (cleaned.Count < 5)
+                {
+                    cleaned.Add("Review unavailable.");
+                }
+
+                return cleaned.Take(5).ToList();
+            }
+            catch (Exception)
+            {
+                return new List<string>
+    {
+        "AI reviews are temporarily unavailable.",
+        "AI reviews are temporarily unavailable.",
+        "AI reviews are temporarily unavailable.",
+        "AI reviews are temporarily unavailable.",
+        "AI reviews are temporarily unavailable."
+    };
+            }
+        }
         }
     }
-    
-}

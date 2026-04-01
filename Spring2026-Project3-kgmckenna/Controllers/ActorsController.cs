@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Spring2026_Project3_kgmckenna.Data;
 using Spring2026_Project3_kgmckenna.Models;
+using Spring2026_Project3_kgmckenna.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using VaderSharp2;
 
 namespace Spring2026_Project3_kgmckenna.Controllers
 {
@@ -34,13 +36,76 @@ namespace Spring2026_Project3_kgmckenna.Controllers
             }
 
             var actor = await _context.Actors
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .Include(a => a.ActorMovies)
+                    .ThenInclude(am => am.Movie)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (actor == null)
             {
                 return NotFound();
             }
 
-            return View(actor);
+            var movieTitles = actor.ActorMovies
+                .Where(am => am.Movie != null)
+                .Select(am => am.Movie!.Title)
+                .ToList();
+
+            var fakeTweets = new List<string>
+    {
+        $"{actor.Name} absolutely stole the show.",
+        $"{actor.Name} gave such a fun performance in this movie.",
+        $"I’d watch anything with {actor.Name} in it.",
+        $"{actor.Name} brought a lot of energy to the role.",
+        $"{actor.Name} was one of the best parts of the cast.",
+        $"Really liked what {actor.Name} added to the movie.",
+        $"{actor.Name} made the character feel memorable.",
+        $"{actor.Name}'s scenes were some of my favorites.",
+        $"{actor.Name} was entertaining from start to finish.",
+        $"{actor.Name} deserves more recognition for this performance."
+    };
+
+            var analyzer = new SentimentIntensityAnalyzer();
+
+            var tweetsWithSentiment = fakeTweets.Select(tweet =>
+            {
+                var score = analyzer.PolarityScores(tweet).Compound;
+
+                string sentiment;
+                if (score >= 0.05)
+                    sentiment = "Positive";
+                else if (score <= -0.05)
+                    sentiment = "Negative";
+                else
+                    sentiment = "Neutral";
+
+                return new ReviewSentimentViewModel
+                {
+                    Review = tweet,
+                    Sentiment = sentiment
+                };
+            }).ToList();
+
+            double average = fakeTweets
+                .Select(t => analyzer.PolarityScores(t).Compound)
+                .Average();
+
+            string overallSentiment;
+            if (average >= 0.05)
+                overallSentiment = "Positive";
+            else if (average <= -0.05)
+                overallSentiment = "Negative";
+            else
+                overallSentiment = "Neutral";
+
+            var vm = new ActorDetailsViewModel
+            {
+                Actor = actor,
+                MovieTitles = movieTitles,
+                TweetsWithSentiment = tweetsWithSentiment,
+                OverallSentiment = overallSentiment
+            };
+
+            return View(vm);
         }
 
         // GET: Actors/Create
